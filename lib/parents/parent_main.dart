@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class ParentViewPage extends StatefulWidget {
   @override
@@ -15,6 +16,7 @@ class ParentViewPage extends StatefulWidget {
 class _ParentViewPageState extends State<ParentViewPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  int _selectedIndex = 1; // Default index for Home
 
   late String _guardianEmail;
   late List<Map<String, dynamic>> _students = [];
@@ -173,6 +175,27 @@ class _ParentViewPageState extends State<ParentViewPage> {
     });
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Add navigation logic based on the selected index
+    switch (index) {
+      case 0:
+        // Navigate to Driver page
+        // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => DriverPage()));
+        break;
+      case 1:
+        // Navigate to Home page (current page)
+        break;
+      case 2:
+        // Navigate to Map page
+        // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => MapPage()));
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -224,6 +247,17 @@ class _ParentViewPageState extends State<ParentViewPage> {
           ],
         ),
       ),
+      bottomNavigationBar: CurvedNavigationBar(
+        index: _selectedIndex,
+        backgroundColor: Colors.transparent, // Adjust as needed
+        color: Colors.green, // Adjust color to match Bolt's green
+        items: [
+          Icon(Icons.drive_eta, color: Colors.white), // Icon for Driver
+          Icon(Icons.home, color: Colors.white), // Icon for Home
+          Icon(Icons.map, color: Colors.white), // Icon for Map
+        ],
+        onTap: _onItemTapped, // Handle navigation
+      ),
     );
   }
 
@@ -238,58 +272,170 @@ class _ParentViewPageState extends State<ParentViewPage> {
   }
 
   Widget _buildStudentsDataTable() {
-    return DataTable(
-      columnSpacing: 20.0,
-      headingRowHeight: 40.0,
-      dataRowHeight: 40.0,
-      columns: [
-        DataColumn(
-          label: Text(
-            'Student ID',
-            style: TextStyle(fontWeight: FontWeight.bold),
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: DataTable(
+        columnSpacing: 20.0,
+        headingRowHeight: 40.0,
+        dataRowHeight: 40.0,
+        headingRowColor: MaterialStateColor.resolveWith(
+            (states) => Colors.green), // Green background for header
+        columns: [
+          DataColumn(
+            label: Text(
+              'Student ID',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white), // White text color for header
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Name',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Name',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white), // White text color for header
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Grade',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Grade',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white), // White text color for header
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Assigned Bus',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Assigned Bus',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white), // White text color for header
+            ),
           ),
-        ),
-      ],
-      rows: _students.map((student) {
-        return DataRow(cells: [
-          DataCell(Text(student['studentId'] ?? '')),
-          DataCell(Text(student['studentName'] ?? '')),
-          DataCell(Text(student['studentGrade'] ?? '')),
-          DataCell(Text(student['assignedBus'] ?? '')),
-        ]);
-      }).toList(),
+        ],
+        rows: _students.map((student) {
+          return DataRow(cells: [
+            DataCell(Text(
+              student['studentId'] ?? '',
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            )),
+            DataCell(Text(
+              student['studentName'] ?? '',
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            )),
+            DataCell(Text(
+              student['studentGrade'] ?? '',
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            )),
+            DataCell(Text(
+              student['assignedBus'] ?? '',
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            )),
+          ]);
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildDriverInfo() {
-    return _driverData.isNotEmpty
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    if (_driverData.isEmpty) {
+      // Show a loading indicator if driver data is not available yet
+      return Card(
+        elevation: 3,
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Driver Name: ${_driverData['driverName']}'),
-              Text('Contact: ${_driverData['phoneNumber']}'),
-              Text('Bus: ${_driverData['assignedBus']}'),
+              Text(
+                'Fetching driver data...',
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 16.0),
+              LinearProgressIndicator(
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              ),
             ],
-          )
-        : CircularProgressIndicator();
+          ),
+        ),
+      );
+    } else {
+      return Card(
+        elevation: 3,
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: DataTable(
+          columnSpacing: 20.0,
+          headingRowHeight: 40.0,
+          dataRowHeight: 40.0,
+          headingRowColor: MaterialStateColor.resolveWith(
+              (states) => Colors.green), // Green background for header
+          columns: [
+            DataColumn(
+              label: Text(
+                'Driver Name',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white), // White text color for header
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Contact',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white), // White text color for header
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Bus',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white), // White text color for header
+              ),
+            ),
+          ],
+          rows: [
+            DataRow(cells: [
+              DataCell(Text(
+                _driverData['driverName'] ?? '',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              )),
+              DataCell(Text(
+                _driverData['phoneNumber'] ?? '',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              )),
+              DataCell(Text(
+                _driverData['assignedBus'] ?? '',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              )),
+            ]),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildMap() {

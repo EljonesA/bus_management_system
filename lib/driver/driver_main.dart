@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class DriverPage extends StatefulWidget {
   @override
@@ -171,6 +172,8 @@ class _DriverPageState extends State<DriverPage> {
     });
   }
 
+  int _pageIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,7 +183,7 @@ class _DriverPageState extends State<DriverPage> {
           Tooltip(
             message: 'Sign Out',
             child: IconButton(
-              icon: Icon(Icons.exit_to_app),
+              icon: Icon(Icons.power_settings_new_rounded),
               onPressed: () {
                 _signOut();
               },
@@ -229,6 +232,26 @@ class _DriverPageState extends State<DriverPage> {
           ],
         ),
       ),
+      bottomNavigationBar: CurvedNavigationBar(
+        index: _pageIndex,
+        backgroundColor: Colors.transparent,
+        color: Colors.green,
+        animationDuration: Duration(milliseconds: 300),
+        height: 60,
+        items: [
+          Icon(
+            Icons.home,
+            color: Colors.white,
+          ), // Icon for Driver Info
+          Icon(Icons.people, color: Colors.white), // Icon for Students Info
+          Icon(Icons.map, color: Colors.white), // Icon for Driver Location
+        ],
+        onTap: (index) {
+          setState(() {
+            _pageIndex = index;
+          });
+        },
+      ),
     );
   }
 
@@ -243,89 +266,117 @@ class _DriverPageState extends State<DriverPage> {
   }
 
   Widget _buildDriverDataTable() {
-    return DataTable(
-      columnSpacing: 20.0,
-      headingRowHeight: 40.0,
-      dataRowHeight: 40.0,
-      columns: [
-        DataColumn(
-          label: Text(
-            'Field',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: DataTable(
+        columnSpacing: 20.0,
+        headingRowHeight: 40.0,
+        dataRowHeight: 40.0,
+        headingRowColor: MaterialStateColor.resolveWith(
+          (states) => Colors.green,
         ),
-        DataColumn(
-          label: Text(
-            'Value',
-            style: TextStyle(fontWeight: FontWeight.bold),
+        columns: [
+          DataColumn(
+            label: Text(
+              'Driver Information',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-      ],
-      rows: _driverData.entries.map((entry) {
-        return DataRow(cells: [
-          DataCell(Text(
-            entry.key,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          )),
-          DataCell(Text(entry.value.toString())),
-        ]);
-      }).toList(),
+          DataColumn(
+            label: Text(''),
+          ),
+        ],
+        rows: _driverData.entries.map((entry) {
+          return DataRow(cells: [
+            DataCell(Text(
+              entry.key,
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+            )),
+            DataCell(Text(
+              entry.value.toString(),
+              style: TextStyle(color: Colors.black),
+            )),
+          ]);
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildStudentsDataTable() {
-    return DataTable(
-      columnSpacing: 20.0,
-      headingRowHeight: 40.0,
-      dataRowHeight: 40.0,
-      columns: [
-        DataColumn(
-          label: Text(
-            'Student ID',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: DataTable(
+        columnSpacing: 20.0,
+        headingRowHeight: 40.0,
+        dataRowHeight: 40.0,
+        headingRowColor: MaterialStateColor.resolveWith(
+          (states) => Colors.green,
         ),
-        DataColumn(
-          label: Text(
-            'Name',
-            style: TextStyle(fontWeight: FontWeight.bold),
+        columns: [
+          DataColumn(
+            label: Text(
+              'Student ID',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Grade',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Name',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Assigned Bus',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Grade',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Guardian Name',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Assigned Bus',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-        DataColumn(
-          label: Text(
-            'Guardian Contacts',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          DataColumn(
+            label: Text(
+              'Guardian Name',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
-        ),
-      ],
-      rows: _students.map((student) {
-        return DataRow(cells: [
-          DataCell(Text(student['studentId'] ?? '')),
-          DataCell(Text(student['studentName'] ?? '')),
-          DataCell(Text(student['studentGrade'] ?? '')),
-          DataCell(Text(student['assignedBus'] ?? '')),
-          DataCell(Text(student['guardianName'] ?? '')),
-          DataCell(Text(student['guardianEmail'] ?? '')),
-        ]);
-      }).toList(),
+          DataColumn(
+            label: Text(
+              'Guardian Contacts',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ),
+        ],
+        rows: _students.map((student) {
+          return DataRow(cells: [
+            DataCell(Text(student['studentId'] ?? '',
+                style: TextStyle(color: Colors.black))),
+            DataCell(Text(student['studentName'] ?? '',
+                style: TextStyle(color: Colors.black))),
+            DataCell(Text(student['studentGrade'] ?? '',
+                style: TextStyle(color: Colors.black))),
+            DataCell(Text(student['assignedBus'] ?? '',
+                style: TextStyle(color: Colors.black))),
+            DataCell(Text(student['guardianName'] ?? '',
+                style: TextStyle(color: Colors.black))),
+            DataCell(Text(student['guardianEmail'] ?? '',
+                style: TextStyle(color: Colors.black))),
+          ]);
+        }).toList(),
+      ),
     );
   }
 

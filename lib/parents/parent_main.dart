@@ -258,6 +258,13 @@ class _ParentViewPageState extends State<ParentViewPage> {
         ],
         onTap: _onItemTapped, // Handle navigation
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showAbsenceReportDialog();
+        },
+        tooltip: 'Report Absence',
+        child: Icon(Icons.calendar_month_outlined),
+      ),
     );
   }
 
@@ -272,79 +279,222 @@ class _ParentViewPageState extends State<ParentViewPage> {
   }
 
   Widget _buildStudentsDataTable() {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      child: DataTable(
-        columnSpacing: 20.0,
-        headingRowHeight: 40.0,
-        dataRowHeight: 40.0,
-        headingRowColor: MaterialStateColor.resolveWith(
-            (states) => Colors.green), // Green background for header
-        columns: [
-          DataColumn(
-            label: Text(
-              'Student ID',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white), // White text color for header
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchStudentDataWithAbsenceStatus(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator(); // or any other loading indicator
+        }
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        if (snapshot.hasData) {
+          List<Map<String, dynamic>> students = snapshot.data!;
+          return Card(
+            elevation: 3,
+            margin: EdgeInsets.symmetric(vertical: 8),
+            child: DataTable(
+              columnSpacing: 20.0,
+              headingRowHeight: 40.0,
+              dataRowHeight: 40.0,
+              headingRowColor: MaterialStateColor.resolveWith(
+                  (states) => Colors.green), // Green background for header
+              columns: [
+                DataColumn(
+                  label: Text(
+                    'Student ID',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Name',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Grade',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Assigned Bus',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Status',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Revoke',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white), // White text color for header
+                  ),
+                )
+              ],
+              rows: students.map((student) {
+                // Determine the color of the status indicator
+                Color statusColor =
+                    student['isAbsent'] ? Colors.red : Colors.green;
+
+                return DataRow(cells: [
+                  DataCell(Text(
+                    student['studentId'] ?? '',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )),
+                  DataCell(Text(
+                    student['studentName'] ?? '',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )),
+                  DataCell(Text(
+                    student['studentGrade'] ?? '',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )),
+                  DataCell(Text(
+                    student['assignedBus'] ?? '',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  )),
+                  DataCell(
+                    // Display the status indicator
+                    Icon(
+                      Icons.circle,
+                      color: statusColor,
+                    ),
+                  ),
+                  DataCell(
+                    ElevatedButton(
+                      onPressed: () {
+                        _revokeAbsenteism(student['studentId']);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.black, // Background color
+                        onPrimary: Colors.white, // Text color
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                              8.0), // Adjust the radius as needed
+                        ),
+                      ),
+                      child: Text('Mark Present'),
+                    ),
+                  ),
+                ]);
+              }).toList(),
             ),
-          ),
-          DataColumn(
-            label: Text(
-              'Name',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white), // White text color for header
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Grade',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white), // White text color for header
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Assigned Bus',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white), // White text color for header
-            ),
-          ),
-        ],
-        rows: _students.map((student) {
-          return DataRow(cells: [
-            DataCell(Text(
-              student['studentId'] ?? '',
-              style: TextStyle(
-                color: Colors.black,
-              ),
-            )),
-            DataCell(Text(
-              student['studentName'] ?? '',
-              style: TextStyle(
-                color: Colors.black,
-              ),
-            )),
-            DataCell(Text(
-              student['studentGrade'] ?? '',
-              style: TextStyle(
-                color: Colors.black,
-              ),
-            )),
-            DataCell(Text(
-              student['assignedBus'] ?? '',
-              style: TextStyle(
-                color: Colors.black,
-              ),
-            )),
-          ]);
-        }).toList(),
-      ),
+          );
+        }
+        return Container(); // Return an empty container if no data available
+      },
     );
+  }
+
+  Future<void> _revokeAbsenteism(String studentId) async {
+    try {
+      await _firestore
+          .collection('AbsenseReport')
+          .where('studentID', isEqualTo: studentId)
+          .get()
+          .then((querySnapshot) {
+        querySnapshot.docs.forEach((doc) {
+          doc.reference.delete();
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Absenteism revoked successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      // Trigger UI refresh
+      setState(() {});
+    } catch (e) {
+      print('Error revoking absenteism: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>>
+      _fetchStudentDataWithAbsenceStatus() async {
+    List<Map<String, dynamic>> studentsWithStatus = [];
+
+    try {
+      for (var student in _students) {
+        // Fetch absence status for each student
+        bool isAbsent = await _isStudentAbsent(student['studentId']);
+        student['isAbsent'] = isAbsent;
+        studentsWithStatus.add(student);
+      }
+    } catch (e) {
+      print('Error fetching student data with absence status: $e');
+    }
+
+    return studentsWithStatus;
+  }
+
+// Example function to determine absence status (you can replace it with your own logic)
+  Future<bool> _isStudentAbsent(String studentId) async {
+    try {
+      // Get the current date
+      DateTime currentDate = DateTime.now();
+
+      // Retrieve AbsenceReport records for the student
+      QuerySnapshot snapshot = await _firestore
+          .collection('AbsenseReport')
+          .where('studentID', isEqualTo: studentId)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        // Loop through each AbsenceReport record
+        for (QueryDocumentSnapshot doc in snapshot.docs) {
+          // Get the 'Upto' date from the AbsenceReport record
+          String uptoDateString = doc['Upto'];
+
+          // Parse the 'Upto' date string to DateTime
+          List<String> dateParts = uptoDateString.split('-');
+          int year = int.parse(dateParts[0]);
+          int month = int.parse(dateParts[1]);
+          int day = int.parse(dateParts[2]);
+
+          DateTime uptoDate = DateTime(year, month, day);
+
+          // Check if the current date is less than or equal to the 'Upto' date
+          if (currentDate.isBefore(uptoDate) ||
+              currentDate.isAtSameMomentAs(uptoDate)) {
+            // Student is marked as absent
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error checking student absence: $e');
+    }
+
+    // Student is not marked as absent
+    return false;
   }
 
   Widget _buildDriverInfo() {
@@ -469,10 +619,17 @@ class _ParentViewPageState extends State<ParentViewPage> {
                     width: 80.0,
                     height: 80.0,
                     point: _driverLocation,
-                    child: Icon(
-                      Icons.directions_bus,
-                      color: Colors.red,
-                      size: 30.0,
+                    child: Tooltip(
+                      message: 'Driver Info:\n'
+                          'Name: ${_driverData['driverName']}\n'
+                          'Email: ${_driverData['driverEmail']}\n'
+                          'Phone: ${_driverData['driverPhone']}\n'
+                          'Bus: ${_driverData['assignedBus']}',
+                      child: Icon(
+                        Icons.bus_alert,
+                        color: Colors.red,
+                        size: 30.0,
+                      ),
                     ),
                   ),
                   Marker(
@@ -498,6 +655,14 @@ class _ParentViewPageState extends State<ParentViewPage> {
               // Call a method to fetch and draw the route
               _fetchRoute([_driverLocation, _guardianLocation]);
             },
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black, // Background color
+              onPrimary: Colors.white, // Text color
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(8.0), // Adjust the radius as needed
+              ),
+            ),
             child: Text('View Route'),
           ),
         ),
@@ -541,5 +706,163 @@ class _ParentViewPageState extends State<ParentViewPage> {
           ),
       ],
     );
+  }
+
+  void _showAbsenceReportDialog() {
+    String reason = '';
+    String duration = '1 Day'; // Default duration
+    int customDuration = 1; // Default custom duration
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title:
+                  Text('Report Absence', style: TextStyle(color: Colors.black)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: duration,
+                    items: [
+                      DropdownMenuItem(child: Text('1 Day'), value: '1 Day'),
+                      DropdownMenuItem(child: Text('1 Week'), value: '1 Week'),
+                      DropdownMenuItem(child: Text('Custom'), value: 'Custom'),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        duration = value!;
+                      });
+                    },
+                  ),
+                  if (duration == 'Custom') ...[
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            style: TextStyle(color: Colors.black),
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Custom Duration',
+                              labelStyle: TextStyle(color: Colors.black),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: Colors.black),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              customDuration = int.tryParse(value) ?? 1;
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          flex: 1,
+                          child: DropdownButtonFormField<String>(
+                            value: 'Days',
+                            items: [
+                              DropdownMenuItem(
+                                  child: Text('Days'), value: 'Days'),
+                              DropdownMenuItem(
+                                  child: Text('Weeks'), value: 'Weeks'),
+                            ],
+                            onChanged: (value) {
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  SizedBox(height: 10),
+                  TextFormField(
+                    style: TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'Reason for Absence',
+                      labelStyle: TextStyle(color: Colors.black),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      reason = value;
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Cancel', style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _submitAbsenceReport(reason, duration, customDuration);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Submit', style: TextStyle(color: Colors.black)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitAbsenceReport(
+      String reason, String duration, int customDuration) async {
+    try {
+      if (_students.isNotEmpty) {
+        String studentID = _students[0]['studentId'];
+        String assignedBus = _students[0]['assignedBus'];
+        DateTime now = DateTime.now();
+        String date = '${now.year}-${now.month}-${now.day}';
+        String from_date = '${now.year}-${now.month}-${now.day}';
+
+        // Adjust date based on duration
+        if (duration == '1 Week') {
+          now = now.add(Duration(days: 7));
+          date = '${now.year}-${now.month}-${now.day}';
+        } else if (duration == '1 Day') {
+          now = now.add(Duration(days: 1));
+          date = '${now.year}-${now.month}-${now.day}';
+        } else if (duration == 'Custom') {
+          if (customDuration != null) {
+            if (duration == 'Days') {
+              now = now.add(Duration(days: customDuration));
+            } else if (duration == 'Weeks') {
+              now = now.add(Duration(days: customDuration * 7));
+            }
+            date = '${now.year}-${now.month}-${now.day}';
+          }
+        }
+
+        await _firestore.collection('AbsenseReport').add({
+          'studentID': studentID,
+          'assignedBus': assignedBus,
+          'From': from_date,
+          'Upto': date,
+          'Reason': reason,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Absence reported successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      // Trigger UI refresh
+      setState(() {});
+    } catch (e) {
+      print('Error submitting absence report: $e');
+    }
   }
 }

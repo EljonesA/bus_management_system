@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bus_management_system/admin/manage_students.dart';
 import 'package:bus_management_system/admin/manage_drivers.dart';
 import 'package:bus_management_system/admin/manage_buses.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminPage extends StatefulWidget {
@@ -15,11 +15,13 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> {
   List<Marker> _markers = [];
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late MapController _mapController;
 
   @override
   void initState() {
     super.initState();
     _fetchDriverLocations();
+    _mapController = MapController();
   }
 
   Future<void> _fetchDriverLocations() async {
@@ -38,33 +40,35 @@ class _AdminPageState extends State<AdminPage> {
           width: 80.0,
           height: 80.0,
           point: LatLng(latitude, longitude),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(
-                Icons.directions_bus,
-                color: Colors.red,
-                size: 30.0,
-              ),
-              Positioned(
-                top: -5, // Adjust this value to position the text properly
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white, // Set white background color
-                    borderRadius: BorderRadius.circular(
-                        8.0), // Optional: Add border radius
-                  ),
-                  child: Text(
-                    '$assignedBus',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
+          child: Container(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.directions_bus,
+                  color: Colors.red,
+                  size: 30.0,
+                ),
+                Positioned(
+                  top: -5,
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Text(
+                      '$assignedBus',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList();
@@ -153,7 +157,6 @@ class _AdminPageState extends State<AdminPage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Horizontal row for dashlets
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -171,24 +174,56 @@ class _AdminPageState extends State<AdminPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20), // Add spacing between dashlets and map
-            // OpenStreetMap widget
+            SizedBox(height: 20),
             Expanded(
-              child: FlutterMap(
+              child: Stack(
                 children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      center: LatLng(-0.1566522, 36.1463934),
+                      zoom: 13.0,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      ),
+                      MarkerLayer(markers: _markers),
+                    ],
                   ),
-                  MarkerLayer(
-                    markers: _markers,
+                  Positioned(
+                    bottom: 20.0,
+                    right: 20.0,
+                    child: Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            _mapController.move(
+                                _mapController.center, _mapController.zoom + 1);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            primary: Colors.green,
+                            shape: CircleBorder(),
+                          ),
+                          child: Icon(Icons.add, color: Colors.white),
+                        ),
+                        SizedBox(height: 10.0),
+                        ElevatedButton(
+                          onPressed: () {
+                            _mapController.move(
+                                _mapController.center, _mapController.zoom - 1);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            primary: Colors.green,
+                            shape: CircleBorder(),
+                          ),
+                          child: Icon(Icons.remove, color: Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-                options: MapOptions(
-                  initialCenter:
-                      LatLng(-0.1566522, 36.1463934), // Initial map center
-                  initialZoom: 13.0, // Initial zoom level
-                ), //],
               ),
             ),
           ],
@@ -197,11 +232,9 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  // Method to sign out the user
   Future<void> _signOut() async {
     try {
       await _auth.signOut();
-      // Redirect to sign-in page or any other desired destination
     } catch (e) {
       print('Error signing out: $e');
     }

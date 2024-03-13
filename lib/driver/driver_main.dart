@@ -21,6 +21,7 @@ class _DriverPageState extends State<DriverPage> {
   late List<Map<String, dynamic>> _students = [];
   List<LatLng> _guardianLocations = [];
   List<Polyline> _polylines = [];
+  late List<String> _absentStudents = [];
 
   @override
   void initState() {
@@ -84,10 +85,45 @@ class _DriverPageState extends State<DriverPage> {
             ..._guardianLocations,
           ];
           _fetchRoute(waypoints);
+          _fetchAbsentStudents();
         }
       });
     } catch (e) {
       print('Error fetching students data: $e');
+    }
+  }
+
+  Future<void> _fetchAbsentStudents() async {
+    try {
+      DateTime currentDate = DateTime.now();
+      currentDate =
+          DateTime.utc(currentDate.year, currentDate.month, currentDate.day);
+
+      // Query documents where the current date is within the date range
+      QuerySnapshot snapshot =
+          await _firestore.collection('AbsenseReport').get();
+
+      // Extract student IDs from the documents
+      List<String> absentStudentIds = [];
+      snapshot.docs.forEach((doc) {
+        String uptoDateString = doc['Upto'];
+        // add leading 0 to month
+        List<String> parts = uptoDateString.split('-');
+        String month = parts[1].length == 1 ? '0${parts[1]}' : parts[1];
+        uptoDateString = '${parts[0]}-$month-${parts[2]}';
+
+        DateTime uptoDate = DateTime.parse(uptoDateString);
+        //DateTime uptoDate = DateTime.parse("2024-03-13");
+        if (uptoDate.isAfter(currentDate)) {
+          absentStudentIds.add(doc['studentID'] as String);
+        }
+      });
+
+      setState(() {
+        _absentStudents = absentStudentIds;
+      });
+    } catch (e) {
+      print('Error fetching absent students: $e');
     }
   }
 
@@ -106,7 +142,6 @@ class _DriverPageState extends State<DriverPage> {
 
     final String url =
         '$baseUrl?point=$coordinates&vehicle=$profile&key=$apiKey&points_encoded=false&type=json&instructions=true';
-    print(url);
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -359,8 +394,25 @@ class _DriverPageState extends State<DriverPage> {
                   TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ),
+          DataColumn(
+            label: Text(
+              'Status',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ),
         ],
         rows: _students.map((student) {
+          // Determine status color
+          Color statusColor = _absentStudents.contains(student['studentId'])
+              ? Colors.red
+              : Colors.green;
+
+          // Determine status tooltip
+          String statusTooltip = _absentStudents.contains(student['studentId'])
+              ? 'Absent'
+              : 'Present';
+
           return DataRow(cells: [
             DataCell(Text(student['studentId'] ?? '',
                 style: TextStyle(color: Colors.black))),
@@ -374,6 +426,12 @@ class _DriverPageState extends State<DriverPage> {
                 style: TextStyle(color: Colors.black))),
             DataCell(Text(student['guardianEmail'] ?? '',
                 style: TextStyle(color: Colors.black))),
+            DataCell(
+              Tooltip(
+                message: statusTooltip,
+                child: Icon(Icons.circle, color: statusColor),
+              ),
+            ),
           ]);
         }).toList(),
       ),
@@ -408,23 +466,45 @@ class _DriverPageState extends State<DriverPage> {
                     width: 80.0,
                     height: 80.0,
                     point: driverLocation,
-                    child: Icon(
-                      Icons.location_pin,
-                      color: Colors.red,
-                      size: 30.0,
+                    child: Tooltip(
+                      message: 'Driver Info:\n'
+                          'Name: ${_driverData['driverName']}\n'
+                          'Email: ${_driverData['driverEmail']}\n'
+                          'Phone: ${_driverData['driverPhone']}\n'
+                          'Bus: ${_driverData['assignedBus']}',
+                      child: Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 30.0,
+                      ),
                     ),
                   ),
                   // Markers for the guardians' locations
-                  ..._guardianLocations.map((guardianLocation) => Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: guardianLocation,
+                  ..._guardianLocations.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    LatLng guardianLocation = entry.value;
+                    Color markerColor =
+                        _absentStudents.contains(_students[index]['studentId'])
+                            ? Colors.yellow
+                            : Colors.green;
+                    return Marker(
+                      width: 80.0,
+                      height: 80.0,
+                      point: guardianLocation,
+                      child: Tooltip(
+                        message: 'Student Info:\n'
+                            'ID: ${_students[index]['studentId']}\n'
+                            'Name: ${_students[index]['studentName']}\n'
+                            'Grade: ${_students[index]['studentGrade']}\n'
+                            'Bus: ${_students[index]['assignedBus']}',
                         child: Icon(
-                          Icons.location_pin,
-                          color: Colors.green,
+                          Icons.bus_alert,
+                          color: markerColor,
                           size: 30.0,
                         ),
-                      )),
+                      ),
+                    );
+                  }),
                 ],
               ),
               PolylineLayer(
@@ -435,7 +515,6 @@ class _DriverPageState extends State<DriverPage> {
         ),
         Positioned(
           width: 300,
-          // height: 300,
           top: 16,
           left: 16,
           child: Container(

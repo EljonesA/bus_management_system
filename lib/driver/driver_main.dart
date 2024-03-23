@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class DriverPage extends StatefulWidget {
   @override
@@ -22,6 +21,7 @@ class _DriverPageState extends State<DriverPage> {
   List<LatLng> _guardianLocations = [];
   List<Polyline> _polylines = [];
   late List<String> _absentStudents = [];
+  String _status = 'Off-Route'; // Define _status variable
 
   @override
   void initState() {
@@ -54,6 +54,7 @@ class _DriverPageState extends State<DriverPage> {
       });
     } catch (e) {
       print('Error fetching driver data: $e');
+      ;
     }
   }
 
@@ -207,22 +208,31 @@ class _DriverPageState extends State<DriverPage> {
     });
   }
 
-  int _pageIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Driver Details'),
-        actions: [
-          Tooltip(
-            message: 'Sign Out',
-            child: IconButton(
-              icon: Icon(Icons.power_settings_new_rounded),
-              onPressed: () {
-                _signOut();
-              },
+        backgroundColor: Color.fromARGB(
+            255, 86, 150, 88), // Set the background color of the app bar
+        elevation: 0, // Remove the elevation (shadow) of the app bar
+        foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'SchollyBus Mate',
+              textAlign: TextAlign.center,
             ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.exit_to_app,
+            ),
+            onPressed: () {
+              _signOut();
+            },
           ),
         ],
       ),
@@ -236,6 +246,15 @@ class _DriverPageState extends State<DriverPage> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+            Tooltip(
+              message: 'Provide Feedback',
+              child: IconButton(
+                icon: Icon(Icons.feedback, color: Colors.yellow),
+                onPressed: () {
+                  _showFeedbackDialog(); // Function to show feedback dialog
+                },
               ),
             ),
             SizedBox(height: 20),
@@ -263,31 +282,175 @@ class _DriverPageState extends State<DriverPage> {
               ),
             ),
             SizedBox(height: 20),
-            _buildMap(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: Card(
+                          color: Colors.black,
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(color: Colors.green, width: 2),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.school,
+                                  color: Colors.green,
+                                  size: 48,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Students Assigned',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  '${_students.length}',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                      Expanded(
+                        child: Card(
+                          color: Colors.black,
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(color: Colors.green, width: 2),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                  size: 48,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Absent Students',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  '${_absentStudents.length}',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 50),
+                _buildMapWithEnRouteButton(),
+              ],
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: CurvedNavigationBar(
-        index: _pageIndex,
-        backgroundColor: Colors.transparent,
-        color: Colors.green,
-        animationDuration: Duration(milliseconds: 300),
-        height: 60,
-        items: [
-          Icon(
-            Icons.home,
-            color: Colors.white,
-          ), // Icon for Driver Info
-          Icon(Icons.people, color: Colors.white), // Icon for Students Info
-          Icon(Icons.map, color: Colors.white), // Icon for Driver Location
-        ],
-        onTap: (index) {
-          setState(() {
-            _pageIndex = index;
-          });
-        },
-      ),
     );
+  }
+
+  void _showFeedbackDialog() {
+    String feedback = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Submit Feedback', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            onChanged: (value) {
+              feedback = value;
+            },
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter your feedback',
+              hintStyle: TextStyle(color: Colors.white),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.white)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (feedback.isNotEmpty) {
+                  _submitFeedback(feedback);
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            side: BorderSide(color: Colors.green, width: 2.0),
+          ),
+          contentTextStyle: TextStyle(color: Colors.white),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitFeedback(String feedback) async {
+    try {
+      // You can customize this logic to submit feedback to Firestore
+      await _firestore.collection('Feedback').add({
+        'driverEmail': _driverData['driverEmail'],
+        'feedback': feedback,
+        'Driver': _driverData['driverName'],
+        'timestamp': FieldValue.serverTimestamp(),
+        'Bus': _driverData['assignedBus'],
+        'Tag': 'Driver',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Feedback submitted successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error submitting feedback: $e');
+    }
   }
 
   // Method to sign out the user
@@ -301,141 +464,398 @@ class _DriverPageState extends State<DriverPage> {
   }
 
   Widget _buildDriverDataTable() {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      child: DataTable(
-        columnSpacing: 20.0,
-        headingRowHeight: 40.0,
-        dataRowHeight: 40.0,
-        headingRowColor: MaterialStateColor.resolveWith(
-          (states) => Colors.green,
-        ),
-        columns: [
-          DataColumn(
-            label: Text(
-              'Driver Information',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+    return Center(
+      child: Card(
+        elevation: 3,
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+          width: double.infinity,
+          child: DataTable(
+            columnSpacing: 20.0,
+            headingRowHeight: 40.0,
+            dataRowHeight: 40.0,
+            headingRowColor: MaterialStateColor.resolveWith(
+              (states) => Colors.green,
             ),
+            columns: [
+              DataColumn(
+                label: Text(
+                  'Driver Information',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(''),
+              ),
+            ],
+            rows: [
+              DataRow(cells: [
+                DataCell(Text(
+                  'Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['driverName'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+              DataRow(cells: [
+                DataCell(Text(
+                  'ID',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['empID'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+              DataRow(cells: [
+                DataCell(Text(
+                  'Assigned Bus',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['assignedBus'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+              DataRow(cells: [
+                DataCell(Text(
+                  'Phone Number',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['phoneNumber'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+              DataRow(cells: [
+                DataCell(Text(
+                  'License Number',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['driverLicenceNumber'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+              DataRow(cells: [
+                DataCell(Text(
+                  'National ID',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                )),
+                DataCell(Text(
+                  _driverData['driverNationalID'] ?? '',
+                  style: TextStyle(color: Colors.black),
+                )),
+              ]),
+            ],
           ),
-          DataColumn(
-            label: Text(''),
-          ),
-        ],
-        rows: _driverData.entries.map((entry) {
-          return DataRow(cells: [
-            DataCell(Text(
-              entry.key,
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-            )),
-            DataCell(Text(
-              entry.value.toString(),
-              style: TextStyle(color: Colors.black),
-            )),
-          ]);
-        }).toList(),
+        ),
       ),
     );
   }
 
   Widget _buildStudentsDataTable() {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      child: DataTable(
-        columnSpacing: 20.0,
-        headingRowHeight: 40.0,
-        dataRowHeight: 40.0,
-        headingRowColor: MaterialStateColor.resolveWith(
-          (states) => Colors.green,
-        ),
-        columns: [
-          DataColumn(
-            label: Text(
-              'Student ID',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+    return Center(
+      child: Card(
+        elevation: 3,
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+          width: double.infinity,
+          child: DataTable(
+            columnSpacing: 20.0,
+            headingRowHeight: 40.0,
+            dataRowHeight: 40.0,
+            headingRowColor: MaterialStateColor.resolveWith(
+              (states) => Colors.green,
             ),
-          ),
-          DataColumn(
-            label: Text(
-              'Name',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Grade',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Assigned Bus',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Guardian Name',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Guardian Contacts',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Status',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-        ],
-        rows: _students.map((student) {
-          // Determine status color
-          Color statusColor = _absentStudents.contains(student['studentId'])
-              ? Colors.red
-              : Colors.green;
-
-          // Determine status tooltip
-          String statusTooltip = _absentStudents.contains(student['studentId'])
-              ? 'Absent'
-              : 'Present';
-
-          return DataRow(cells: [
-            DataCell(Text(student['studentId'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(Text(student['studentName'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(Text(student['studentGrade'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(Text(student['assignedBus'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(Text(student['guardianName'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(Text(student['guardianEmail'] ?? '',
-                style: TextStyle(color: Colors.black))),
-            DataCell(
-              Tooltip(
-                message: statusTooltip,
-                child: Icon(Icons.circle, color: statusColor),
+            columns: [
+              DataColumn(
+                label: Text(
+                  'Student ID',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-            ),
-          ]);
-        }).toList(),
+              DataColumn(
+                label: Text(
+                  'Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Grade',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Medical Concerns',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Guardian Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Guardian Contacts',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Status',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+            rows: _students.map((student) {
+              // Determine status color
+              Color statusColor = _absentStudents.contains(student['studentId'])
+                  ? Colors.red
+                  : Colors.green;
+
+              // Determine status tooltip
+              String statusTooltip =
+                  _absentStudents.contains(student['studentId'])
+                      ? 'Absent'
+                      : 'Present';
+
+              return DataRow(cells: [
+                DataCell(
+                  Text(
+                    student['studentId'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    student['studentName'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    student['studentGrade'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    student['medicalConcerns'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    student['guardianName'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    student['guardianMobile'] ?? '',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                DataCell(
+                  Tooltip(
+                    message: statusTooltip,
+                    child: Icon(Icons.circle, color: statusColor),
+                  ),
+                ),
+              ]);
+            }).toList(),
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildMapWithEnRouteButton() {
+    return Stack(
+      children: [
+        _buildMap(),
+        Positioned(
+          top: 20.0,
+          right: 10.0,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.green,
+                width: 2.0,
+              ),
+              borderRadius: BorderRadius.circular(5.0),
+              color: Colors.black,
+            ),
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return DropdownButton<String>(
+                  value: _status,
+                  icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: TextStyle(color: Colors.white),
+                  underline: Container(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _status = newValue!;
+                      _updateDriverStatus(
+                          newValue); // Update status in Firestore
+                    });
+                  },
+                  dropdownColor: Colors.black,
+                  items: <String>['En-Route', 'Off-Route']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // route status update pop-up
+  void _showStatusUpdateDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            side: BorderSide(color: Colors.green, width: 2.0),
+          ),
+          backgroundColor: Colors.black,
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.5,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateDriverStatus(String status) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('Drivers')
+          .where('driverEmail', isEqualTo: _driverEmail)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        String driverId = querySnapshot.docs.first.id;
+        await _firestore
+            .collection('Drivers')
+            .doc(driverId)
+            .update({'status': status});
+
+        _showStatusUpdateDialog('Route status updated successfully.');
+      } else {
+        _showStatusUpdateDialog('Driver document not found.');
+      }
+    } catch (e) {
+      _showStatusUpdateDialog('Error updating route status: $e');
+    }
   }
 
   Widget _buildMap() {
@@ -446,121 +866,128 @@ class _DriverPageState extends State<DriverPage> {
     // Create a LatLng object for the driver's location
     LatLng driverLocation = LatLng(latitude, longitude);
 
-    return Stack(
-      children: [
-        Container(
-          height: 500,
-          child: FlutterMap(
-            options: MapOptions(
-              center: LatLng(-1.286389, 36.817223),
-              zoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Colors.green, // Green border color
+          width: 3.0, // Width of the border
+        ),
+      ),
+      child: Stack(
+        children: [
+          Container(
+            height: 500,
+            child: FlutterMap(
+              options: MapOptions(
+                center: LatLng(-1.286389, 36.817223),
+                zoom: 13.0,
               ),
-              MarkerLayer(
-                markers: [
-                  // Marker for the driver's location
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: driverLocation,
-                    child: Tooltip(
-                      message: 'Driver Info:\n'
-                          'Name: ${_driverData['driverName']}\n'
-                          'Email: ${_driverData['driverEmail']}\n'
-                          'Phone: ${_driverData['driverPhone']}\n'
-                          'Bus: ${_driverData['assignedBus']}',
-                      child: Icon(
-                        Icons.location_pin,
-                        color: Colors.red,
-                        size: 30.0,
-                      ),
-                    ),
-                  ),
-                  // Markers for the guardians' locations
-                  ..._guardianLocations.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    LatLng guardianLocation = entry.value;
-                    Color markerColor =
-                        _absentStudents.contains(_students[index]['studentId'])
-                            ? Colors.yellow
-                            : Colors.green;
-                    return Marker(
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                ),
+                MarkerLayer(
+                  markers: [
+                    // Marker for the driver's location
+                    Marker(
                       width: 80.0,
                       height: 80.0,
-                      point: guardianLocation,
+                      point: driverLocation,
                       child: Tooltip(
-                        message: 'Student Info:\n'
-                            'ID: ${_students[index]['studentId']}\n'
-                            'Name: ${_students[index]['studentName']}\n'
-                            'Grade: ${_students[index]['studentGrade']}\n'
-                            'Bus: ${_students[index]['assignedBus']}',
+                        message: '    Driver Info:\n'
+                            'Name: ${_driverData['driverName']}\n'
+                            'Email: ${_driverData['driverEmail']}\n'
+                            'Phone: ${_driverData['phoneNumber']}',
                         child: Icon(
-                          Icons.bus_alert,
-                          color: markerColor,
+                          Icons.location_pin,
+                          color: Colors.red,
                           size: 30.0,
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                    // Markers for the guardians' locations
+                    ..._guardianLocations.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      LatLng guardianLocation = entry.value;
+                      Color markerColor = _absentStudents
+                              .contains(_students[index]['studentId'])
+                          ? Colors.orange
+                          : Colors.green;
+                      return Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: guardianLocation,
+                        child: Tooltip(
+                          message: '     Student Info:\n'
+                              'ID: ${_students[index]['studentId']}\n'
+                              'Name: ${_students[index]['studentName']}\n'
+                              'Grade: ${_students[index]['studentGrade']}\n'
+                              'Guardian: ${_students[index]['guardianName']}',
+                          child: Icon(
+                            Icons.bus_alert,
+                            color: markerColor,
+                            size: 30.0,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+                PolylineLayer(
+                  polylines: _polylines,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            width: 300,
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
                 ],
               ),
-              PolylineLayer(
-                polylines: _polylines,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Distance: $_distance',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Route Instructions:',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _instructions.map((instruction) {
+                      return Text('- $instruction');
+                    }).toList(),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        Positioned(
-          width: 300,
-          top: 16,
-          left: 16,
-          child: Container(
-            padding: EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(8.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Distance: $_distance',
-                  style: TextStyle(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Route Instructions:',
-                  style: TextStyle(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _instructions.map((instruction) {
-                    return Text('- $instruction');
-                  }).toList(),
-                ),
-              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

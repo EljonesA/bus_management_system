@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:bus_management_system/parent_login.dart';
-import 'package:bus_management_system/driver_login.dart';
-import 'package:bus_management_system/admin_login.dart';
+import 'package:bus_management_system/login_screens/parent_login.dart';
+import 'package:bus_management_system/login_screens/driver_login.dart';
+import 'package:bus_management_system/login_screens/admin_login.dart';
 
 class ChooseRolePage extends StatelessWidget {
   @override

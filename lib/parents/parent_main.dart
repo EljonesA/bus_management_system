@@ -6,7 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 
 class ParentViewPage extends StatefulWidget {
   @override
@@ -16,7 +17,6 @@ class ParentViewPage extends StatefulWidget {
 class _ParentViewPageState extends State<ParentViewPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  int _selectedIndex = 1; // Default index for Home
 
   late String _guardianEmail;
   late List<Map<String, dynamic>> _students = [];
@@ -46,17 +46,22 @@ class _ParentViewPageState extends State<ParentViewPage> {
   }
 
   Future<void> _fetchStudentsData(String guardianEmail) async {
+    print('First: $guardianEmail');
     try {
       QuerySnapshot snapshot = await _firestore
           .collection('Students')
           .where('guardianEmail', isEqualTo: guardianEmail)
           .get();
 
+      print(guardianEmail);
+
       setState(() {
         _students = snapshot.docs
             .map((doc) => doc.data() as Map<String, dynamic>)
             .toList();
       });
+
+      print("Data: $_students");
 
       if (_students.isNotEmpty) {
         await _fetchDriverData(_students[0]['assignedBus']);
@@ -175,35 +180,28 @@ class _ParentViewPageState extends State<ParentViewPage> {
     });
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Add navigation logic based on the selected index
-    switch (index) {
-      case 0:
-        // Navigate to Driver page
-        // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => DriverPage()));
-        break;
-      case 1:
-        // Navigate to Home page (current page)
-        break;
-      case 2:
-        // Navigate to Map page
-        // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => MapPage()));
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Parent View'),
+        backgroundColor: Color.fromARGB(
+            255, 86, 150, 88), // Set the background color of the app bar
+        elevation: 0, // Remove the elevation (shadow) of the app bar
+        foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'SchollyBus Mate',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.exit_to_app),
+            icon: Icon(
+              Icons.exit_to_app,
+            ),
             onPressed: () {
               _signOut();
             },
@@ -211,52 +209,52 @@ class _ParentViewPageState extends State<ParentViewPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Student Information',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Student Information',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            _buildStudentsDataTable(),
-            SizedBox(height: 40),
-            Text(
-              'Driver Information',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              Tooltip(
+                message: 'Provide Feedback',
+                child: IconButton(
+                  icon: Icon(Icons.feedback, color: Colors.yellow),
+                  onPressed: () {
+                    _showFeedbackDialog(); // Function to show feedback dialog
+                  },
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            _buildDriverInfo(),
-            SizedBox(height: 40),
-            Text(
-              'Bus Location',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              SizedBox(height: 20),
+              _buildStudentsDataTable(),
+              SizedBox(height: 40),
+              Text(
+                'Driver Information',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            _buildMap(),
-          ],
+              SizedBox(height: 20),
+              _buildDriverInfo(),
+              SizedBox(height: 40),
+              Text(
+                'Bus Location',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              _buildMap(),
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: CurvedNavigationBar(
-        index: _selectedIndex,
-        backgroundColor: Colors.transparent, // Adjust as needed
-        color: Colors.green, // Adjust color to match Bolt's green
-        items: [
-          Icon(Icons.drive_eta, color: Colors.white), // Icon for Driver
-          Icon(Icons.home, color: Colors.white), // Icon for Home
-          Icon(Icons.map, color: Colors.white), // Icon for Map
-        ],
-        onTap: _onItemTapped, // Handle navigation
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -283,127 +281,220 @@ class _ParentViewPageState extends State<ParentViewPage> {
       future: _fetchStudentDataWithAbsenceStatus(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // or any other loading indicator
+          return Center(
+            child:
+                CircularProgressIndicator(), // or any other loading indicator
+          );
         }
         if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
         }
         if (snapshot.hasData) {
           List<Map<String, dynamic>> students = snapshot.data!;
-          return Card(
-            elevation: 3,
-            margin: EdgeInsets.symmetric(vertical: 8),
-            child: DataTable(
-              columnSpacing: 20.0,
-              headingRowHeight: 40.0,
-              dataRowHeight: 40.0,
-              headingRowColor: MaterialStateColor.resolveWith(
-                  (states) => Colors.green), // Green background for header
-              columns: [
-                DataColumn(
-                  label: Text(
-                    'Student ID',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Name',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Grade',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Assigned Bus',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Status',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Revoke',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white), // White text color for header
-                  ),
-                )
-              ],
-              rows: students.map((student) {
-                // Determine the color of the status indicator
-                Color statusColor =
-                    student['isAbsent'] ? Colors.red : Colors.green;
-
-                return DataRow(cells: [
-                  DataCell(Text(
-                    student['studentId'] ?? '',
-                    style: TextStyle(
-                      color: Colors.black,
+          return SingleChildScrollView(
+            child: Center(
+              child: Card(
+                color: Colors.white, // Background color
+                elevation: 3,
+                margin: EdgeInsets.symmetric(vertical: 8),
+                child: Container(
+                  width: double.infinity,
+                  child: DataTable(
+                    columnSpacing: 20.0,
+                    headingRowHeight: 40.0,
+                    dataRowHeight: 40.0,
+                    headingRowColor: MaterialStateColor.resolveWith(
+                      (states) => Colors.green,
                     ),
-                  )),
-                  DataCell(Text(
-                    student['studentName'] ?? '',
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
-                  )),
-                  DataCell(Text(
-                    student['studentGrade'] ?? '',
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
-                  )),
-                  DataCell(Text(
-                    student['assignedBus'] ?? '',
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
-                  )),
-                  DataCell(
-                    // Display the status indicator
-                    Icon(
-                      Icons.circle,
-                      color: statusColor,
-                    ),
-                  ),
-                  DataCell(
-                    ElevatedButton(
-                      onPressed: () {
-                        _revokeAbsenteism(student['studentId']);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        primary: Colors.black, // Background color
-                        onPrimary: Colors.white, // Text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              8.0), // Adjust the radius as needed
+                    columns: [
+                      DataColumn(
+                        label: Text(
+                          'Property',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      child: Text('Mark Present'),
-                    ),
+                      DataColumn(
+                        label: Text(
+                          'Value',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                    rows: [
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Student ID',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['studentId'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Name',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['studentName'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Grade',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['studentGrade'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Medical Concerns',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map(
+                                  (student) => student['medicalConcerns'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Guardian Name',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['guardianName'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Guardian Contact',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['guardianMobile'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Assigned Bus',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(Text(
+                          students
+                              .map((student) => student['assignedBus'] ?? '')
+                              .join(','),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Status',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(
+                          Wrap(
+                            children: students.map((student) {
+                              return Icon(
+                                student['isAbsent']
+                                    ? Icons.circle
+                                    : Icons.check_circle,
+                                color: student['isAbsent']
+                                    ? Colors.red
+                                    : Colors.green,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ]),
+                      DataRow(cells: [
+                        DataCell(Text(
+                          'Revoke',
+                          style: TextStyle(
+                            color: Colors.black,
+                          ),
+                        )),
+                        DataCell(
+                          Wrap(
+                            children: students.map((student) {
+                              return ElevatedButton(
+                                onPressed: () {
+                                  _revokeAbsenteism(student['studentId']);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                child: Text('Mark Present'),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ]),
+                    ],
                   ),
-                ]);
-              }).toList(),
+                ),
+              ),
             ),
           );
         }
@@ -443,10 +534,15 @@ class _ParentViewPageState extends State<ParentViewPage> {
 
     try {
       for (var student in _students) {
-        // Fetch absence status for each student
-        bool isAbsent = await _isStudentAbsent(student['studentId']);
-        student['isAbsent'] = isAbsent;
-        studentsWithStatus.add(student);
+        // Check if studentId is not null
+        if (student['studentId'] != null) {
+          // Fetch absence status for each student
+          bool isAbsent = await _isStudentAbsent(student['studentId']);
+          student['isAbsent'] = isAbsent;
+          studentsWithStatus.add(student);
+        } else {
+          print('Student ID is null for student: ${student.toString()}');
+        }
       }
     } catch (e) {
       print('Error fetching student data with absence status: $e');
@@ -455,7 +551,7 @@ class _ParentViewPageState extends State<ParentViewPage> {
     return studentsWithStatus;
   }
 
-// Example function to determine absence status (you can replace it with your own logic)
+// function to determine absence status
   Future<bool> _isStudentAbsent(String studentId) async {
     try {
       // Get the current date
@@ -499,92 +595,219 @@ class _ParentViewPageState extends State<ParentViewPage> {
 
   Widget _buildDriverInfo() {
     if (_driverData.isEmpty) {
-      // Show a loading indicator if driver data is not available yet
+      // Show "No Bus assigned" message if driver data is empty
+      sendEmailNotification();
       return Card(
         elevation: 3,
         margin: EdgeInsets.symmetric(vertical: 8),
+        color: Colors.grey[350], // table background color
         child: Padding(
           padding: EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Fetching driver data...',
+                'Bus not assigned yet to the student. Admin has been notified.',
                 style: TextStyle(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
               ),
-              SizedBox(height: 16.0),
-              LinearProgressIndicator(
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-              ),
             ],
           ),
         ),
       );
     } else {
-      return Card(
-        elevation: 3,
-        margin: EdgeInsets.symmetric(vertical: 8),
-        child: DataTable(
-          columnSpacing: 20.0,
-          headingRowHeight: 40.0,
-          dataRowHeight: 40.0,
-          headingRowColor: MaterialStateColor.resolveWith(
-              (states) => Colors.green), // Green background for header
-          columns: [
-            DataColumn(
-              label: Text(
-                'Driver Name',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white), // White text color for header
+      // Display driver information if available
+      return SingleChildScrollView(
+        child: Center(
+          child: Container(
+            width: double.infinity,
+            child: Card(
+              elevation: 3,
+              margin: EdgeInsets.symmetric(vertical: 8),
+              child: DataTable(
+                columnSpacing: 20.0,
+                headingRowHeight: 40.0,
+                dataRowHeight: 40.0,
+                headingRowColor: MaterialStateColor.resolveWith(
+                  (states) => Colors.green,
+                ),
+                columns: [
+                  DataColumn(
+                    label: Text(
+                      'Property',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Value',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+                rows: [
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Name',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['driverName'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'ID',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['empID'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Assigned Bus',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['assignedBus'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Contact',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['phoneNumber'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Email Address',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['driverEmail'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Gender',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['driverGender'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'National ID',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['driverNationalID'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'License Number',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['driverLicenceNumber'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text(
+                      'Bus Status',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                    DataCell(Text(
+                      _driverData['status'] ?? '',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+                  ]),
+                ],
               ),
             ),
-            DataColumn(
-              label: Text(
-                'Contact',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white), // White text color for header
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Bus',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white), // White text color for header
-              ),
-            ),
-          ],
-          rows: [
-            DataRow(cells: [
-              DataCell(Text(
-                _driverData['driverName'] ?? '',
-                style: TextStyle(
-                  color: Colors.black,
-                ),
-              )),
-              DataCell(Text(
-                _driverData['phoneNumber'] ?? '',
-                style: TextStyle(
-                  color: Colors.black,
-                ),
-              )),
-              DataCell(Text(
-                _driverData['assignedBus'] ?? '',
-                style: TextStyle(
-                  color: Colors.black,
-                ),
-              )),
-            ]),
-          ],
+          ),
         ),
       );
+    }
+  }
+
+  Future<void> sendEmailNotification() async {
+    String username = 'topbus112@gmail.com'; // Your Gmail address
+    String password = 'TopBusupport07'; // Your Gmail password
+
+    final smtpServer = gmail(username, password);
+
+    final message = Message()
+      ..from = Address(username)
+      ..recipients.add('eljones.odongo@gmail.com') // Admin's email address
+      ..subject = 'New Student Waiting for Bus Assignment'
+      ..text =
+          'A new student is waiting to be assigned a bus. Please take action as soon as possible.';
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Email sent: ${sendReport.toString()}');
+    } catch (e) {
+      print('Error sending email: $e');
     }
   }
 
@@ -592,7 +815,13 @@ class _ParentViewPageState extends State<ParentViewPage> {
     return Stack(
       children: [
         Container(
-          height: 300,
+          height: 500,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Colors.green, // Set border color here
+              width: 3.0, // Set border width here
+            ),
+          ),
           child: FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -620,10 +849,10 @@ class _ParentViewPageState extends State<ParentViewPage> {
                     height: 80.0,
                     point: _driverLocation,
                     child: Tooltip(
-                      message: 'Driver Info:\n'
+                      message: '    Driver Info:\n'
                           'Name: ${_driverData['driverName']}\n'
                           'Email: ${_driverData['driverEmail']}\n'
-                          'Phone: ${_driverData['driverPhone']}\n'
+                          'Phone: ${_driverData['phoneNumber']}\n'
                           'Bus: ${_driverData['assignedBus']}',
                       child: Icon(
                         Icons.bus_alert,
@@ -719,18 +948,36 @@ class _ParentViewPageState extends State<ParentViewPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title:
-                  Text('Report Absence', style: TextStyle(color: Colors.black)),
+              backgroundColor: Colors.black, // Set background color
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+                side: BorderSide(color: Colors.green, width: 2), // Green border
+              ),
+              title: Text(
+                'Report Absence',
+                style: TextStyle(color: Colors.white), // Text color
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DropdownButtonFormField<String>(
+                    dropdownColor:
+                        Colors.black, // Set dropdown background color
                     value: duration,
                     items: [
-                      DropdownMenuItem(child: Text('1 Day'), value: '1 Day'),
-                      DropdownMenuItem(child: Text('1 Week'), value: '1 Week'),
-                      DropdownMenuItem(child: Text('Custom'), value: 'Custom'),
+                      DropdownMenuItem(
+                          child: Text('1 Day',
+                              style: TextStyle(color: Colors.white)),
+                          value: '1 Day'),
+                      DropdownMenuItem(
+                          child: Text('1 Week',
+                              style: TextStyle(color: Colors.white)),
+                          value: '1 Week'),
+                      DropdownMenuItem(
+                          child: Text('Custom',
+                              style: TextStyle(color: Colors.white)),
+                          value: 'Custom'),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -745,13 +992,14 @@ class _ParentViewPageState extends State<ParentViewPage> {
                         Expanded(
                           flex: 2,
                           child: TextFormField(
-                            style: TextStyle(color: Colors.black),
+                            style: TextStyle(color: Colors.white), // Text color
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               labelText: 'Custom Duration',
-                              labelStyle: TextStyle(color: Colors.black),
+                              labelStyle:
+                                  TextStyle(color: Colors.white), // Label color
                               focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.black),
+                                borderSide: BorderSide(color: Colors.white),
                               ),
                             ),
                             onChanged: (value) {
@@ -763,12 +1011,18 @@ class _ParentViewPageState extends State<ParentViewPage> {
                         Expanded(
                           flex: 1,
                           child: DropdownButtonFormField<String>(
+                            dropdownColor:
+                                Colors.black, // Set dropdown background color
                             value: 'Days',
                             items: [
                               DropdownMenuItem(
-                                  child: Text('Days'), value: 'Days'),
+                                  child: Text('Days',
+                                      style: TextStyle(color: Colors.white)),
+                                  value: 'Days'),
                               DropdownMenuItem(
-                                  child: Text('Weeks'), value: 'Weeks'),
+                                  child: Text('Weeks',
+                                      style: TextStyle(color: Colors.white)),
+                                  value: 'Weeks'),
                             ],
                             onChanged: (value) {
                               setState(() {});
@@ -780,12 +1034,12 @@ class _ParentViewPageState extends State<ParentViewPage> {
                   ],
                   SizedBox(height: 10),
                   TextFormField(
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white), // Text color
                     decoration: InputDecoration(
                       labelText: 'Reason for Absence',
-                      labelStyle: TextStyle(color: Colors.black),
+                      labelStyle: TextStyle(color: Colors.white), // Label color
                       focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black),
+                        borderSide: BorderSide(color: Colors.white),
                       ),
                     ),
                     onChanged: (value) {
@@ -799,14 +1053,16 @@ class _ParentViewPageState extends State<ParentViewPage> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text('Cancel', style: TextStyle(color: Colors.black)),
+                  child: Text('Cancel',
+                      style: TextStyle(color: Colors.white)), // Text color
                 ),
                 TextButton(
                   onPressed: () {
                     _submitAbsenceReport(reason, duration, customDuration);
                     Navigator.pop(context);
                   },
-                  child: Text('Submit', style: TextStyle(color: Colors.black)),
+                  child: Text('Submit',
+                      style: TextStyle(color: Colors.white)), // Text color
                 ),
               ],
             );
@@ -863,6 +1119,75 @@ class _ParentViewPageState extends State<ParentViewPage> {
       setState(() {});
     } catch (e) {
       print('Error submitting absence report: $e');
+    }
+  }
+
+  void _showFeedbackDialog() {
+    String feedback = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Submit Feedback', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            onChanged: (value) {
+              feedback = value;
+            },
+            decoration: InputDecoration(
+              hintText: 'Enter your feedback',
+              hintStyle: TextStyle(color: Colors.white),
+            ),
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            side: BorderSide(color: Colors.green, width: 2.0),
+          ),
+          contentTextStyle: TextStyle(color: Colors.white),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.white)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (feedback.isNotEmpty) {
+                  _submitFeedback(feedback);
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitFeedback(String feedback) async {
+    try {
+      // You can customize this logic to submit feedback to Firestore
+      await _firestore.collection('Feedback').add({
+        'parentEmail': _guardianEmail,
+        'guardianName': _students[0]['guardianName'],
+        'feedback': feedback,
+        'Driver': _driverData['driverName'],
+        'timestamp': FieldValue.serverTimestamp(),
+        'Tag': 'Guardian',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Feedback submitted successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error submitting feedback: $e');
     }
   }
 }

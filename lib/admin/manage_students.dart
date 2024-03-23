@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bus_management_system/choose_role_page.dart';
 
 class ManageStudentsPage extends StatefulWidget {
   @override
@@ -22,20 +22,30 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Manage Students'),
+        backgroundColor: Color.fromARGB(
+            255, 86, 150, 88), // Set the background color of the app bar
+        elevation: 0, // Remove the elevation (shadow) of the app bar
+        foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'SchollyBus Mate',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
         actions: [
-          // Signout Button
           IconButton(
-            icon: Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () async {
-              try {
-                await FirebaseAuth.instance.signOut();
-                // Navigate to the login page after signout
-                Navigator.of(context).pushReplacementNamed('/login');
-              } catch (e) {
-                print('Error signing out: $e');
-              }
+            icon: Icon(
+              Icons.exit_to_app,
+            ),
+            onPressed: () {
+              // navigate back to login screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ChooseRolePage()),
+              );
             },
           ),
         ],
@@ -62,126 +72,161 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
   }
 
   Widget _buildDataTable(QuerySnapshot snapshot) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor:
-            MaterialStateColor.resolveWith((states) => Color(0xFF007AFF)),
-        columns: [
-          DataColumn(
-            label: Text(
-              'Student Name',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 20), // Add spacing between the text and the table
+        Text(
+          'Manage Students',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
-          DataColumn(
-            label: Text(
-              'Grade',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Assigned Bus',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Guardian Name',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Manage',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-        rows: List<DataRow>.generate(snapshot.docs.length, (index) {
-          final document = snapshot.docs[index];
-          final data = document.data() as Map<String, dynamic>;
-          return DataRow(
-            color: MaterialStateColor.resolveWith((states) {
-              return index == _hoveredRowIndex
-                  ? Color.fromARGB(255, 102, 187, 243)
-                  : Colors.transparent;
-            }),
-            onSelectChanged: (_) {
-              setState(() {
-                _hoveredRowIndex = _hoveredRowIndex == index ? -1 : index;
-              });
-            },
-            cells: [
-              DataCell(Text(data['studentName'] ?? 'N/A')),
-              DataCell(Text(data['studentGrade'] ?? 'N/A')),
-              DataCell(Text(data['assignedBus'] ?? 'N/A')),
-              DataCell(Text(data['guardianName'] ?? 'N/A')),
-              DataCell(
-                Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => _assignBus(document),
-                      style: ElevatedButton.styleFrom(
-                        primary: Color(0xFF132e57), // Background color
-                        onPrimary: Colors.white, // Text color
-                        textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        elevation: 8, // Elevation for a sleek look
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8), // Padding for the button
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(20), // Rounded corners
-                        ),
-                      ),
-                      child: Text('Assign Bus'),
+        ),
+        SizedBox(
+            height:
+                10), // Add additional spacing between the text and the table
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Container(
+            color:
+                Colors.white, // Set the background color of the table to white
+            child: DataTable(
+              headingRowColor:
+                  MaterialStateColor.resolveWith((states) => Colors.green),
+              dataRowColor:
+                  MaterialStateColor.resolveWith((states) => Colors.white),
+              dataRowHeight: 60,
+              columns: [
+                DataColumn(
+                  label: Text(
+                    'Student Name',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                    SizedBox(width: 8), // Add some space between buttons
-                    ElevatedButton(
-                      onPressed: () => _deleteStudent(document),
-                      style: ElevatedButton.styleFrom(
-                        primary: Colors.red, // Background color
-                        onPrimary: Colors.white, // Text color
-                        textStyle: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        elevation: 8, // Elevation for a sleek look
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8), // Padding for the button
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(20), // Rounded corners
-                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Grade',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Assigned Bus',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Guardian Name',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Manage',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+              rows: List<DataRow>.generate(snapshot.docs.length, (index) {
+                final document = snapshot.docs[index];
+                final data = document.data() as Map<String, dynamic>;
+                return DataRow(
+                  color: MaterialStateColor.resolveWith((states) {
+                    return index == _hoveredRowIndex
+                        ? Color.fromARGB(255, 102, 187, 243)
+                        : Colors.transparent;
+                  }),
+                  onSelectChanged: (_) {
+                    setState(() {
+                      _hoveredRowIndex = _hoveredRowIndex == index ? -1 : index;
+                    });
+                  },
+                  cells: [
+                    DataCell(Text(
+                      data['studentName'] ?? 'N/A',
+                      style: TextStyle(color: Colors.black),
+                    )),
+                    DataCell(Text(
+                      data['studentGrade'] ?? 'N/A',
+                      style: TextStyle(color: Colors.black),
+                    )),
+                    DataCell(Text(
+                      data['assignedBus'] ?? 'N/A',
+                      style: TextStyle(color: Colors.black),
+                    )),
+                    DataCell(Text(
+                      data['guardianName'] ?? 'N/A',
+                      style: TextStyle(color: Colors.black),
+                    )),
+                    DataCell(
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => _assignBus(document),
+                            style: ElevatedButton.styleFrom(
+                              primary: Color(0xFF132e57), // Background color
+                              onPrimary: Colors.white, // Text color
+                              textStyle: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              elevation: 8, // Elevation for a sleek look
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8), // Padding for the button
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    20), // Rounded corners
+                              ),
+                            ),
+                            child: Text('Assign Bus'),
+                          ),
+                          SizedBox(width: 8), // Add some space between buttons
+                          ElevatedButton(
+                            onPressed: () => _deleteStudent(document),
+                            style: ElevatedButton.styleFrom(
+                              primary: Colors.red, // Background color
+                              onPrimary: Colors.white, // Text color
+                              textStyle: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              elevation: 8, // Elevation for a sleek look
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8), // Padding for the button
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    20), // Rounded corners
+                              ),
+                            ),
+                            child: Text('Delete'),
+                          ),
+                        ],
                       ),
-                      child: Text('Delete'),
                     ),
                   ],
-                ),
-              ),
-            ],
-          );
-        }),
-      ),
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -193,21 +238,30 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black, // Set background color to black
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: BorderSide(
+              color: Colors.green, width: 2), // Set border color and width
+        ),
         title: Text(
           'Assign Bus',
-          style: TextStyle(color: Colors.black),
+          style:
+              TextStyle(color: Colors.white), // Set title text color to white
         ),
         content: Container(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: DropdownButton<String>(
-            dropdownColor: Colors.white,
+            dropdownColor:
+                Colors.black, // Set dropdown background color to black
             items: busNames.map((String value) {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(
                   value,
-                  style: TextStyle(color: Colors.black),
+                  style: TextStyle(
+                      color: Colors
+                          .white), // Set dropdown item text color to white
                 ),
               );
             }).toList(),

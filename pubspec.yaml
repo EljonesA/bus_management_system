@@ -53,6 +53,7 @@ dependencies:
   flutter_map_cancellable_tile_provider: ^2.0.0
   responsive_table: ^0.2.0+2
   http: ^1.2.0
+  mailer: ^6.1.0
 
 
   # The following adds the Cupertino Icons font to your application.

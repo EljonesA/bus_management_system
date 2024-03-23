@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'parent_login.dart';
+import 'package:geolocator/geolocator.dart'; // Import the geolocator package
+import 'package:bus_management_system/login_screens/parent_login.dart';
+import 'package:bus_management_system/choose_role_page.dart';
+import 'dart:math'; // for ID generation
 
 class StudentRegistrationPage extends StatefulWidget {
   @override
@@ -41,6 +44,18 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     _relationshipController = TextEditingController();
     _latitudeController = TextEditingController();
     _longitudeController = TextEditingController();
+
+    // Get the current location when the page loads
+    _getCurrentLocation();
+  }
+
+  void _getCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      _latitudeController.text = position.latitude.toString();
+      _longitudeController.text = position.longitude.toString();
+    });
   }
 
   @override
@@ -61,8 +76,27 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     super.dispose();
   }
 
+  // fucntion to generate random srudent id
+  String _generateShortId() {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const idLength = 4; // Adjust the length as needed
+    final random = Random();
+    return String.fromCharCodes(Iterable.generate(
+      idLength,
+      (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+    ));
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      // coordinates to of type double / number
+      double latitude = double.tryParse(_latitudeController.text) ?? 0.0;
+      double longitude = double.tryParse(_longitudeController.text) ?? 0.0;
+
+      // Generate a unique short student ID
+      String studentId = _generateShortId();
+
       final studentData = {
         'guardianName': _guardianNameController.text,
         'guardianMobile': _guardianMobileController.text,
@@ -75,8 +109,10 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
         'emergencyContacts': _emergencyContactsController.text,
         'medicalConcerns': _medicalConcernsController.text,
         'relationship': _relationshipController.text,
-        'latitude': _latitudeController.text,
-        'longitude': _longitudeController.text,
+        'latitude': latitude,
+        'longitude': longitude,
+        'assignedBus': 'none',
+        'studentId': studentId,
       };
 
       try {
@@ -105,9 +141,33 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Student Registration'),
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromARGB(
+            255, 86, 150, 88), // Set the background color of the app bar
+        elevation: 0, // Remove the elevation (shadow) of the app bar
         foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'SchollyBus Mate',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.exit_to_app,
+            ),
+            onPressed: () {
+              // navigate back to login screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ChooseRolePage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -289,6 +349,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
                           labelText: 'Latitude',
                         ),
                         keyboardType: TextInputType.number,
+                        enabled: false, // Disable editing
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter latitude';
@@ -303,6 +364,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
                           labelText: 'Longitude',
                         ),
                         keyboardType: TextInputType.number,
+                        enabled: false, // Disable editing
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter longitude';

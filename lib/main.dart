@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bus_management_system/choose_role_page.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:bus_management_system/screens/welcome_home_screen.dart';
 
 // Initialize firebase
 void main() async {

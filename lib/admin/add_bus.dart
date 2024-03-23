@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bus_management_system/choose_role_page.dart';
 
 class AddBusesPage extends StatefulWidget {
   @override
@@ -7,280 +8,356 @@ class AddBusesPage extends StatefulWidget {
 }
 
 class _AddBusesPageState extends State<AddBusesPage> {
-  String _selectedOperationStatus = 'In Service';
-  String _selectedEmergencyKit = 'Yes';
-  String _selectedCCTVCamera = 'Yes';
+  String _selectedFuelType = 'Diesel';
+  String _selectedInsuranceProvider = 'CIC Insurance';
+  String _selectedTransmission = 'Auto';
 
   final _formKey = GlobalKey<FormState>();
 
   // Declare controllers for each form field
   final TextEditingController busNumberController = TextEditingController();
+  final TextEditingController colorController = TextEditingController();
+  final TextEditingController insurancePolicyNumberController =
+      TextEditingController();
+  final TextEditingController lastMaintenanceDateController =
+      TextEditingController(text: 'n/a');
   final TextEditingController licensePlateNumberController =
       TextEditingController();
-  final TextEditingController busTypeController = TextEditingController();
-  final TextEditingController fuelLevelController = TextEditingController();
-  final TextEditingController anyIssuesController = TextEditingController();
-  final TextEditingController totalCapacityController = TextEditingController();
-  final TextEditingController manufacturerController = TextEditingController();
+  final TextEditingController makeController = TextEditingController();
   final TextEditingController modelController = TextEditingController();
+  final TextEditingController nextMaintenanceDateController =
+      TextEditingController(text: 'n/a');
+  final TextEditingController safetyFeaturesController =
+      TextEditingController();
+  final TextEditingController seatingCapacityController =
+      TextEditingController();
   final TextEditingController vinController = TextEditingController();
+  final TextEditingController yearController = TextEditingController();
+  final TextEditingController assignedDriverController =
+      TextEditingController(text: 'none');
+  final TextEditingController busNumberDuplicateController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Buses'),
-        backgroundColor: Colors.black, // Uber black color
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.8,
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  TextFormField(
-                    controller: busNumberController, // Add controller
-                    decoration: InputDecoration(labelText: 'Bus Number'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter bus number';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: licensePlateNumberController, // Add controller
-                    decoration:
-                        InputDecoration(labelText: 'License Plate Number'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter license plate number';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: busTypeController, // Add controller
-                    decoration: InputDecoration(labelText: 'Bus Type'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter bus type';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedOperationStatus,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedOperationStatus = newValue!;
-                      });
-                    },
-                    items: ['In Service', 'Out of Service']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    decoration: InputDecoration(labelText: 'Operation Status'),
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: fuelLevelController, // Add controller
-                    decoration: InputDecoration(labelText: 'Fuel Level'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter fuel level';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: anyIssuesController, // Add controller
-                    decoration: InputDecoration(labelText: 'Any Issues'),
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: totalCapacityController, // Add controller
-                    decoration: InputDecoration(labelText: 'Total Capacity'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter total capacity';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedEmergencyKit,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedEmergencyKit = newValue!;
-                      });
-                    },
-                    items: ['Yes', 'No']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    decoration:
-                        InputDecoration(labelText: 'Emergency Kit Available'),
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: manufacturerController, // Add controller
-                    decoration: InputDecoration(labelText: 'Manufacturer'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter manufacturer';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: modelController, // Add controller
-                    decoration: InputDecoration(labelText: 'Model'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter model';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  TextFormField(
-                    controller: vinController, // Add controller
-                    decoration: InputDecoration(
-                        labelText: 'Vehicle Identification Number (VIN)'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter VIN';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedCCTVCamera,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedCCTVCamera = newValue!;
-                      });
-                    },
-                    items: ['Yes', 'No']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    decoration:
-                        InputDecoration(labelText: 'CCTV Camera Availability'),
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // Process form data
-                        Map<String, dynamic> busData = {
-                          'Bus Number': busNumberController.text,
-                          'License Plate Number':
-                              licensePlateNumberController.text,
-                          'Bus Type': busTypeController.text,
-                          'Operation Status': _selectedOperationStatus,
-                          'Fuel Level': fuelLevelController.text,
-                          'Any Issues': anyIssuesController.text,
-                          'Total Capacity': totalCapacityController.text,
-                          'Emergency KitAvailable': _selectedEmergencyKit,
-                          'Manufacturer': manufacturerController.text,
-                          'Model': modelController.text,
-                          'Vehicle Identification Number (VIN)':
-                              vinController.text,
-                          'CCTV Camera Availaibility': _selectedCCTVCamera,
-                        };
+        appBar: AppBar(
+          backgroundColor: Color.fromARGB(
+              255, 86, 150, 88), // Set the background color of the app bar
+          elevation: 0, // Remove the elevation (shadow) of the app bar
+          foregroundColor: Colors.white,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'SchollyBus Mate',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.exit_to_app,
+              ),
+              onPressed: () {
+                // navigate back to login screen
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChooseRolePage()),
+                );
+              },
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.6,
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: busNumberController,
+                        decoration: InputDecoration(labelText: 'Bus Number'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter bus number';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: colorController,
+                        decoration: InputDecoration(labelText: 'Color'),
+                      ),
+                      SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedFuelType,
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedFuelType = newValue!;
+                          });
+                        },
+                        items: ['Diesel', 'Petrol']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        decoration: InputDecoration(labelText: 'Fuel Type'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: insurancePolicyNumberController,
+                        decoration: InputDecoration(
+                            labelText: 'Insurance Policy Number'),
+                      ),
+                      SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedInsuranceProvider,
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedInsuranceProvider = newValue!;
+                          });
+                        },
+                        items: ['CIC Insurance', 'Britam']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        decoration:
+                            InputDecoration(labelText: 'Insurance Provider'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: lastMaintenanceDateController,
+                        decoration: InputDecoration(
+                            labelText: 'Last Maintenance Date',
+                            hintText: 'n/a'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: licensePlateNumberController,
+                        decoration:
+                            InputDecoration(labelText: 'License Plate Number'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter license plate number';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: makeController,
+                        decoration: InputDecoration(labelText: 'Make'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: modelController,
+                        decoration: InputDecoration(labelText: 'Model'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: nextMaintenanceDateController,
+                        decoration: InputDecoration(
+                            labelText: 'Next Maintenance Date',
+                            hintText: 'n/a'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: safetyFeaturesController,
+                        decoration:
+                            InputDecoration(labelText: 'Safety Features'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: seatingCapacityController,
+                        decoration:
+                            InputDecoration(labelText: 'Seating Capacity'),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter seating capacity';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedTransmission,
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedTransmission = newValue!;
+                          });
+                        },
+                        items: ['Auto', 'Manual']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        decoration: InputDecoration(labelText: 'Transmission'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: vinController,
+                        decoration: InputDecoration(
+                            labelText: 'Vehicle Identification Number (VIN)'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter VIN';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: yearController,
+                        decoration: InputDecoration(labelText: 'Year'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: assignedDriverController,
+                        decoration: InputDecoration(
+                            labelText: 'Assigned Driver', hintText: 'none'),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: busNumberDuplicateController,
+                        decoration:
+                            InputDecoration(labelText: 'Bus Number Duplicate'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter bus number duplicate';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            // Process form data
+                            Map<String, dynamic> busData = {
+                              'Bus Number': busNumberController.text,
+                              'Color': colorController.text,
+                              'Fuel Type': _selectedFuelType,
+                              'Insurance Policy Number':
+                                  insurancePolicyNumberController.text,
+                              'Insurance Provider': _selectedInsuranceProvider,
+                              'Last Maintenance Date':
+                                  lastMaintenanceDateController.text,
+                              'License Plate Number':
+                                  licensePlateNumberController.text,
+                              'Make': makeController.text,
+                              'Model': modelController.text,
+                              'Next Maintenance Date':
+                                  nextMaintenanceDateController.text,
+                              'Safety Features': safetyFeaturesController.text,
+                              'Seating Capacity':
+                                  int.parse(seatingCapacityController.text),
+                              'Transmission': _selectedTransmission,
+                              'Vehicle Identification Number (VIN)':
+                                  vinController.text,
+                              'Year': yearController.text,
+                              'assignedDriver': assignedDriverController.text,
+                              'busNumber': busNumberDuplicateController.text,
+                            };
 
-                        // Access the 'Buses' collection in Firestore and add the bus data
-                        FirebaseFirestore.instance
-                            .collection('Buses')
-                            .add(busData)
-                            .then((value) {
-                          // Clear form fields after successful submission
-                          busNumberController.clear();
-                          licensePlateNumberController.clear();
-                          busTypeController.clear();
-                          fuelLevelController.clear();
-                          anyIssuesController.clear();
-                          totalCapacityController.clear();
-                          manufacturerController.clear();
-                          modelController.clear();
-                          vinController.clear();
-                          // Show success message to user
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Bus information added successfully',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              backgroundColor: Colors.green, // Success color
-                            ),
-                          );
-                        }).catchError((error) {
-                          // Show error message to user if submission fails
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Failed to add bus information: $error',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              backgroundColor: Colors.red, // Error color
-                            ),
-                          );
-                        });
-                      }
-                    },
-                    child: Text(
-                      'Submit',
-                      style: TextStyle(color: Colors.black), // Uber black color
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.white, // Uber white color
-                    ),
+                            // Access the 'Buses' collection in Firestore and add the bus data
+                            FirebaseFirestore.instance
+                                .collection('Buses')
+                                .add(busData)
+                                .then((value) {
+                              // Clear form fields after successful submission
+                              busNumberController.clear();
+                              colorController.clear();
+                              insurancePolicyNumberController.clear();
+                              lastMaintenanceDateController.clear();
+                              licensePlateNumberController.clear();
+                              makeController.clear();
+                              modelController.clear();
+                              nextMaintenanceDateController.clear();
+                              safetyFeaturesController.clear();
+                              seatingCapacityController.clear();
+                              vinController.clear();
+                              yearController.clear();
+                              assignedDriverController.clear();
+                              busNumberDuplicateController.clear();
+
+                              // Show success message to user
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Bus information added successfully',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor:
+                                      Colors.green, // Success color
+                                ),
+                              );
+                            }).catchError((error) {
+                              // Show error message to user if submission fails
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to add bus information: $error',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red, // Error color
+                                ),
+                              );
+                            });
+                          }
+                        },
+                        child: Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.green, // Background color
+                          onPrimary: Colors.white, // Text color
+                          side: BorderSide(
+                              color: Colors.white, width: 2), // Border
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   @override
   void dispose() {
     // Dispose controllers to avoid memory leaks
     busNumberController.dispose();
+    colorController.dispose();
+    insurancePolicyNumberController.dispose();
+    lastMaintenanceDateController.dispose();
     licensePlateNumberController.dispose();
-    busTypeController.dispose();
-    fuelLevelController.dispose();
-    anyIssuesController.dispose();
-    totalCapacityController.dispose();
-    manufacturerController.dispose();
+    makeController.dispose();
     modelController.dispose();
+    nextMaintenanceDateController.dispose();
+    safetyFeaturesController.dispose();
+    seatingCapacityController.dispose();
     vinController.dispose();
+    yearController.dispose();
+    assignedDriverController.dispose();
+    busNumberDuplicateController.dispose();
     super.dispose();
   }
 }

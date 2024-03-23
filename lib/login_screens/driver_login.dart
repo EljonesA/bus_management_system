@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:bus_management_system/driver_main.dart';
 import 'package:bus_management_system/driver/driver_main.dart';
 
 class DriverLoginPage extends StatelessWidget {
@@ -87,19 +86,6 @@ class DriverLoginPage extends StatelessWidget {
                   child: Text('Forgot Password?',
                       style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: 10),
-                TextButton(
-                  onPressed: () {
-                    // Navigate to signup page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => DriverSignUpPage()),
-                    );
-                  },
-                  child: Text('Not a member? Sign Up',
-                      style: TextStyle(color: Colors.white)),
-                ),
               ],
             ),
           ),
@@ -152,109 +138,6 @@ class DriverLoginPage extends StatelessWidget {
         fontSize: 16.0,
       );
       print('Reset password error: $e');
-    }
-  }
-}
-
-class DriverSignUpPage extends StatelessWidget {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white, width: 2),
-              color: Colors.black,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Driver Sign Up',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Image.asset(
-                  'images/driver_icon.png',
-                  width: 150,
-                ),
-                SizedBox(height: 20),
-                Container(
-                  width: 250,
-                  child: TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Username',
-                      prefixIcon: Icon(Icons.person, color: Colors.white),
-                      border: OutlineInputBorder(),
-                      labelStyle: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  width: 250,
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock, color: Colors.white),
-                      border: OutlineInputBorder(),
-                      labelStyle: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    String email = _emailController.text.trim();
-                    String password = _passwordController.text.trim();
-                    _registerWithEmailAndPassword(context, email, password);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.white,
-                  ),
-                  child: Text('Sign Up', style: TextStyle(color: Colors.black)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _registerWithEmailAndPassword(
-      BuildContext context, String email, String password) async {
-    try {
-      await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-      // Navigate to the login page or any other page after successful registration
-    } catch (e) {
-      // Handle registration errors, display error message to the user
-      Fluttertoast.showToast(
-        msg: "Sign up error: $e",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.TOP,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
-      print('Sign up error: $e');
     }
   }
 }

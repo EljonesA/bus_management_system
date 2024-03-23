@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-//import 'parent_main.dart';
+import 'package:bus_management_system/choose_role_page.dart';
 import 'package:bus_management_system/parents/parent_main.dart';
-import 'parent_register_child.dart';
+import 'package:bus_management_system/parents/parent_register_child.dart';
+import 'dart:async'; // import for timer
 
 class ParentLoginPage extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -165,7 +166,33 @@ class ParentSignUpPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Parent / Guardian Sign Up'),
+        backgroundColor: Color.fromARGB(
+            255, 86, 150, 88), // Set the background color of the app bar
+        elevation: 0, // Remove the elevation (shadow) of the app bar
+        foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'SchollyBus Mate',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.exit_to_app,
+            ),
+            onPressed: () {
+              // navigate back to login screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ChooseRolePage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -224,7 +251,7 @@ class ParentSignUpPage extends StatelessWidget {
                   onPressed: () {
                     String email = _emailController.text.trim();
                     String password = _passwordController.text.trim();
-                    _registerWithEmailAndPassword(context, email, password);
+                    _verifyEmail(context, email, password);
                   },
                   style: ElevatedButton.styleFrom(
                     primary: Colors.white,
@@ -237,6 +264,92 @@ class ParentSignUpPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _verifyEmail(
+      BuildContext context, String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await _auth.currentUser!.sendEmailVerification();
+
+      Timer.periodic(Duration(seconds: 2), (timer) {
+        _auth.currentUser!.reload();
+        if (_auth.currentUser!.emailVerified) {
+          timer.cancel();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => StudentRegistrationPage()),
+          );
+        }
+      });
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Colors.green, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            title: Text(
+              "Email Verification",
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Text(
+              "A verification email has been sent to $email",
+              style: TextStyle(color: Colors.white),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(
+                  "OK",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Colors.green, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            title: Text(
+              "Error",
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Text(
+              "Error! Double check & try again.",
+              style: TextStyle(color: Colors.white),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(
+                  "OK",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+      print('Sign up error: $e');
+    }
   }
 
   Future<void> _registerWithEmailAndPassword(

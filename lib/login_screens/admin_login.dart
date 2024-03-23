@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:bus_management_system/admin_main.dart';
-//import 'package:bus_management_system/test_admin.dart';
+import 'package:bus_management_system/admin/admin_main.dart';
 
 class AdminLoginPage extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;
